@@ -1,2 +1,2 @@
-# LiDAR Vehicle
+# Object detection system design for an autonomous vehicle based on LiDAR
 
