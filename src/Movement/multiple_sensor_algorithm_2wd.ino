@@ -159,4 +159,28 @@ void loop() {
   if(i3) {motor_left.set(-power);
   motor_right.set(power);
   }
+  
+  if(((motor_left.get() == power && motor_right.get() == -power) || (motor_left.get() == -power && motor_right.get() == power)) && n == 0) t++;
+  else {
+    n = t;
+    t = 0;
+    }
+
+  if(r4<300 && n>0) n4 = n;
+
+  if(n4>0) {motor_left.set(-power);
+    motor_right.set(power);
+    n4--;
+    }
+    
+  else n = 0;
+
+  if(r5<300 && n>0) n5 = n;
+
+  if(n5>0) {motor_left.set(power);
+    motor_right.set(-power);
+    n5--;
+    }
+
+  else n = 0;
 }
