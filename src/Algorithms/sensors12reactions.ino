@@ -12,11 +12,6 @@ PCF8574 expander;
 
 #define N 0
 
-#define MAX 0.6
-#define DIST1 500
-#define DIST2 400
-#define WAIT 5
-
 #define pi 3.1415926535897932384626433832795
 
 VL53L0X sensor1;    // SENSORS
@@ -32,8 +27,8 @@ VL53L0X sensor10;
 VL53L0X sensor11;
 VL53L0X sensor12;
 
-#define nwf 1    // ignores erroneous 'near' readings
-#define fwn 2    // ignores erroneous 'far' readings
+#define nwf 0    // ignores erroneous 'near' readings
+#define fwn 1    // ignores erroneous 'far' readings
 
 int r[13];    // variables for interpreting sensor readings
 int a[13];
@@ -50,8 +45,7 @@ int l[13];
 L293D motor_left(11, 12, A0);    // MOTOR DRIVER
 L293D motor_right(10, 8, 9);
 
-double MAX1 = 0.5;
-double MAX2 = 0.5;
+double MAX = 1.0;    // maximum motor power
 double power = MAX;
 double power_left = MAX;
 double power_right = MAX;
@@ -77,16 +71,13 @@ double angle;
 
 double destination[2] = {DISTANCE, ANGLE};    // distance(m), angle(deg)
 double x_dest, y_dest;
-double dest_distance = DISTANCE;
-double dest_angle = ANGLE;
+double dest_distance, dest_angle;
 
 double x1, y1, x0, y0;
 
 int manouver_left, manouver_right, sensor;    // MOVEMENT
 int left_count, right_count;
 int traverse, turn_count, turn, slow;
-
-int path_change;
 
 int last_forward, last_left, last_right, wait, waiting;
 
@@ -108,6 +99,82 @@ byte x[8] = {0xff,0x81,0xbd,0xa5,0xa5,0xbd,0x81,0xff};
 LedControl lc = LedControl(DIN, CLK, CS, 0);
 
 int error;
+
+int smallest;
+
+void LwheelSpeed()
+{
+  coder[LEFT] ++;    // count the left wheel encoder interrupts
+}
+
+
+void RwheelSpeed()
+{
+  coder[RIGHT] ++;   // count the right wheel encoder interrupts
+}
+
+void goForward()
+{
+  if (!finish) {
+    motor_left.set(power_left);
+    motor_right.set(power_right);
+    forward = 1;
+    left = 0;
+    right = 0;
+  }
+}
+
+void goLeft()
+{
+  if (!finish) {
+    motor_left.set(-power_left);
+    motor_right.set(power_right);
+    forward = 0;
+    left = 1;
+    right = 0;
+  }
+}
+
+void goRight()
+{
+  if (!finish) {
+    motor_left.set(power_left);
+    motor_right.set(-power_right);
+    forward = 0;
+    left = 0;
+    right = 1;
+  }
+}
+
+void Wait()
+{
+  if (!finish) {
+    motor_left.set(0.0);
+    motor_right.set(0.0);
+    forward = 0;
+    left = 0;
+    right = 0;
+  }
+}
+
+void Stop()
+{
+  motor_left.set(0);
+  motor_right.set(0);
+  forward = 0;
+  left = 0;
+  right = 0;
+  finish = 1;
+}
+
+void printByte(byte character [])
+{
+  int i = 0;
+  for (i = 0; i < 8; i++)
+  {
+    lc.setRow(0, i, character[i]);
+  }
+}
 
 void setup() {
   Serial.begin(9600);
@@ -282,57 +349,57 @@ void setup() {
 void loop() {
 
   r[1] = sensor1.readRangeContinuousMillimeters();
-  //Serial.print(r[1]);
-  //Serial.print(" ");
+  Serial.print(r[1]);
+  Serial.print(" ");
 
   r[2] = sensor2.readRangeContinuousMillimeters();
-  //Serial.print(r[2]);
-  //Serial.print(" ");
+  Serial.print(r[2]);
+  Serial.print(" ");
 
   r[3] = sensor3.readRangeContinuousMillimeters();
-  //Serial.print(r[3]);
-  //Serial.print(" ");
+  Serial.print(r[3]);
+  Serial.print(" ");
 
   r[4] = sensor4.readRangeContinuousMillimeters();
-  //Serial.print(r[4]);
-  //Serial.print(" ");
+  Serial.print(r[4]);
+  Serial.print(" ");
 
   r[5] = sensor5.readRangeContinuousMillimeters();
-  //Serial.print(r[5]);
-  //Serial.print(" ");
+  Serial.print(r[5]);
+  Serial.print(" ");
 
   r[6] = sensor6.readRangeContinuousMillimeters();
-  //Serial.print(r[6]);
-  //Serial.print(" ");
+  Serial.print(r[6]);
+  Serial.print(" ");
 
   r[7] = sensor7.readRangeContinuousMillimeters();
-  //Serial.print(r[7]);
-  //Serial.print(" ");
+  Serial.print(r[7]);
+  Serial.print(" ");
 
   r[8] = sensor8.readRangeContinuousMillimeters();
-  //Serial.print(r[8]);
-  //Serial.print(" ");
+  Serial.print(r[8]);
+  Serial.print(" ");
 
   r[9] = sensor9.readRangeContinuousMillimeters();
-  //Serial.print(r[9]);
-  //Serial.print(" ");
+  Serial.print(r[9]);
+  Serial.print(" ");
 
   r[10] = sensor10.readRangeContinuousMillimeters();
-  //Serial.print(r[10]);
-  //Serial.print(" ");
+  Serial.print(r[10]);
+  Serial.print(" ");
 
   r[11] = sensor11.readRangeContinuousMillimeters();
-  //Serial.print(r[11]);
-  //Serial.print(" ");
+  Serial.print(r[11]);
+  Serial.print(" ");
 
   r[12] = sensor12.readRangeContinuousMillimeters();
-  //Serial.print(r[12]);
-  //Serial.println(" ");
+  Serial.print(r[12]);
+  Serial.println(" ");
 
-  //Serial.println();
+  Serial.println();
 
   for(int n = 1; n<=12; n++){
-    if (r[n] < DIST1 && r[n] > 0) a[n]++;
+    if (r[n] < 100 && r[n] > 0) a[n]++;
     else a[n] = 0;
     if (a[n] > nwf) b[n] = fwn;
     if (b[n] > 0) {
@@ -341,7 +408,7 @@ void loop() {
     }
     else i[n] = 0;
   
-    if (/*r[n] >= 300 && */r[n] < DIST2) c[n]++;
+    /*if (r[n] >= 100 && r[n] < 200) c[n]++;
     else c[n] = 0;
     if (c[n] > nwf) d[n] = fwn;
     if (d[n] > 0) {
@@ -350,14 +417,14 @@ void loop() {
     }
     else j[n] = 0;
   
-    if (r[n] >= 500 && r[n] < 700) e[n]++;
+    if (r[n] >= 200 && r[n] < 300) e[n]++;
     else e[n] = 0;
     if (e[n] > nwf) f[n] = fwn;
     if (f[n] > 0) {
       k[n] = 1;
       f[n]--;
     }
-    else k[n] = 0;
+    else k[n] = 0;*/
 
     l[n] = !i[n] && !j[n] && !k[n];
   }
@@ -726,21 +793,20 @@ void loop() {
 
 static unsigned long timer = 0;                //print manager timer
 
-    /*Serial.print("Coder value: ");
+    Serial.print("Coder value: ");
     Serial.print(left_speed);
     Serial.print("[Left Wheel] ");
     Serial.print(right_speed);
     Serial.println("[Right Wheel]");
-    Serial.println();*/
+    Serial.println();
 
-  //if(timer < millis()){
     left_speed = coder[LEFT] - lastSpeed[LEFT];
     right_speed = coder[RIGHT] - lastSpeed[RIGHT];
     lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
     lastSpeed[RIGHT] = coder[RIGHT];
-  //}
-  
-  Input = coder[LEFT] - coder[RIGHT];
+    timer = millis();
+
+  /*Input = coder[LEFT] - coder[RIGHT];
   myPID.Compute();
   power = Output;
 
@@ -749,420 +815,175 @@ static unsigned long timer = 0;                //print manager timer
   }
   if(power > MAX) {power_right = 2 * MAX - power;
     power_left = MAX;
-  }
+  }*/
 
-  if (!i[1] && !i[2] && !j[3] && !j[4] && !path_change) goForward();
+  if(k[1] || k[2] || k[3] || k[4] || k[5] || k[6] || k[7] || k[8] || k[11] || k[12]) MAX = 1.0;
+  if(j[1] || j[2] || j[3] || j[4] || j[5] || j[6] || j[7] || j[8] || j[11] || j[12]) MAX = 1.0;
+  if(i[1] || i[2] || i[3] || i[4] || i[5] || i[6] || i[7] || i[8] || i[11] || i[12]) MAX = 1.0;
 
-  if (i[1] || j[3]) goRight();
-
-  if (i[2] || j[4]) goLeft();
-
-  if((i[1] || j[3]) && (i[2] || j[4])){
-    if((r[1] + r[3]) < r[2] + r[4]) goRight();
-    else goLeft();
+  /*if (k[1]) {
+      power_left = -MAX;
+      power_right = 0.9 * -MAX;
+    }
+  if (k[2]) {
+      power_left = 0.9 * -MAX;
+      power_right = -MAX;
+    }
+  if (k[3]) {
+      power_left = -MAX;
+      power_right = 0.8 * -MAX;
+    }
+  if (k[4]) {
+      power_left = 0.8 * -MAX;
+      power_right = -MAX;
+    }
+  if (k[5]) {
+      power_left = -MAX;
+      power_right = 0.7 * -MAX;
+    }
+  if (k[6]) {
+      power_left = 0.7 * -MAX;
+      power_right = -MAX;
+    }
+  if (k[7]) {
+      power_left = MAX;
+      power_right = 0.5 * MAX;
+    }
+  if (k[8]) {
+      power_left = 0.5 * MAX;
+      power_right = MAX;
+    }
+  if (k[9]) {
+      power_left = MAX;
+      power_right = 0.8 * MAX;
+    }
+  if (k[10]) {
+      power_left = 0.8 * MAX;
+      power_right = MAX;
+    }
+  if (k[11]) {
+      power_left = MAX;
+      power_right = MAX;
+    }
+  if (k[12]) {
+      power_left = MAX;
+      power_right = MAX;
     }
 
-  /*if (!i[1] && !i[2]) goForward();
-
-  if (i[1]) goRight();
-
-  if (i[2]) goLeft();
-
-  if(i[1] && i[2]){
-    if((r[1]) < r[2]) goRight();
-    else goLeft();
+  if (j[1]) {
+      power_left = -MAX;
+      power_right = 0.9 * -MAX;
+    }
+  if (j[2]) {
+      power_left = 0.9 * -MAX;
+      power_right = -MAX;
+    }
+  if (j[3]) {
+      power_left = -MAX;
+      power_right = 0.8 * -MAX;
+    }
+  if (j[4]) {
+      power_left = 0.8 * -MAX;
+      power_right = -MAX;
+    }
+  if (j[5]) {
+      power_left = -MAX;
+      power_right = 0.7 * -MAX;
+    }
+  if (j[6]) {
+      power_left = 0.7 * -MAX;
+      power_right = -MAX;
+    }
+  if (j[7]) {
+      power_left = MAX;
+      power_right = 0.5 * MAX;
+    }
+  if (j[8]) {
+      power_left = 0.5 * MAX;
+      power_right = MAX;
+    }
+  if (j[9]) {
+      power_left = MAX;
+      power_right = 0.8 * MAX;
+    }
+  if (j[10]) {
+      power_left = 0.8 * MAX;
+      power_right = MAX;
+    }
+  if (j[11]) {
+      power_left = MAX;
+      power_right = MAX;
+    }
+  if (j[12]) {
+      power_left = MAX;
+      power_right = MAX;
     }*/
 
-  if (i[1] || i[2] || i[3] || i[4] || i[5] || i[6] || i[7] || i[8] || i[9] || i[10] || i[11] || i[12]) sensor = 1;
-
-  /*if(!manouver_left && !manouver_right){
-    if (i[2] || i[4]) manouver_left = 1;
-  
-    if (i[1] || i[3]) manouver_right = 1;
-  
-    if(manouver_left && manouver_right){
-      manouver_left = 0;
-      manouver_right = 0;
-      if(i[2] && i[4]) manouver_left = 1;
-      if(i[1] && i[3]) manouver_right = 1;
-    }
-  
-    if(manouver_left && manouver_right){
-      manouver_left = 0;
-      manouver_right = 0;
-      if(r[2] < r[1]) manouver_left = 1;
-      else manouver_right = 1;
-    }
-  }*/
-
-  /*if(manouver_left){
-    if((i[2] || i[4]) && !traverse){
-      if(!slow) {
-        goLeft();
-        left_count++;
-        slow = 1;
+  for(int n = 1; n <= 12; n++){
+      if(n == 1){
+        smallest = r[n];
       }
-      else {
-        Wait();
-        slow = 0;
+      else{
+        if(r[n] < smallest && r[n] > 0){
+          smallest = r[n];
+        }
       }
-    }
-    if(!i[2] && !i[4] && i[8] && !turn_count){
-      goForward();
-      forward_counter++;
-      traverse = 1;
-    }
-    if(!i[6] && !i[8] && !turn){
-      right_count = left_count + 1;
-      forward_counter = 0;
-      turn_count = 1;
-    }
-    if(right_count > 1){
-      goRight();
-      right_count--;
-      turn = 1;
-    }
-    if(right_count == 1){
-      left_count = 0;
-      right_count = 0;
-      manouver_left = 0;
-      traverse = 0;
-      turn_count = 0;
-      turn = 0;
-    }
-    if(forward_counter > 50){
-      goLeft();
-      }
-    if((forward_counter > 50) && i[12]){
-      left_count = 0;
-      right_count = 0;
-      manouver_left = 0;
-    }
   }
 
-  if(manouver_right){
-    if(i[1] || i[3] && !traverse){
-        power_left = MAX;
-        power_right = MAX;
-        goRight();
-        right_count++;
+  if (i[1] && r[1] == smallest) {
+      power_left = -MAX;
+      power_right = 0.9 * -MAX;
     }
-    if(!i[1] && !i[3] && i[7] && !turn_count){
-      goForward();
-      forward_counter++;
-      traverse = 1;
+  if (i[2] && r[2] == smallest) {
+      power_left = 0.9 * -MAX;
+      power_right = -MAX;
     }
-    if(!i[5] && !i[7] && !turn){
-      left_count = right_count + 1;
-      forward_counter = 0;
-      turn_count = 1;
+  if (i[3] && r[3] == smallest) {
+      power_left = -MAX;
+      power_right = 0.8 * -MAX;
     }
-    if(left_count > 1){
-      goLeft();
-      left_count--;
-      turn = 1;
+  if (i[4] && r[4] == smallest) {
+      power_left = 0.8 * -MAX;
+      power_right = -MAX;
     }
-    if(left_count == 1){
-      right_count = 0;
-      left_count = 0;
-      manouver_right = 0;
-      traverse = 0;
-      turn_count = 0;
-      turn = 0;
+  if (i[5] && r[5] == smallest) {
+      power_left = -MAX;
+      power_right = 0.7 * -MAX;
     }
-    if(forward_counter > 50){
-      goRight();
-      }
-    if((forward_counter > 50) && i[11]){
-      right_count = 0;
-      left_count = 0;
-      manouver_right = 0;
+  if (i[6] && r[6] == smallest) {
+      power_left = 0.7 * -MAX;
+      power_right = -MAX;
     }
-  }*/
-
-  /*if(manouver_left){
-    if((i[2] || i[4]) && !traverse){
-        MAX = MAX2;
-        goLeft();
-        left_count++;
-      }
-    else MAX = MAX1;
-    if(!i[2] && !i[4] && !turn_count){
-      goForward();
-      forward_counter++;
-      traverse = 1;
+  if (i[7] && r[7] == smallest) {
+      power_left = MAX;
+      power_right = 0.5 * MAX;
     }
-    if(!i[8] && i[10] && !turn){
-      right_count = left_count + 1;
-      forward_counter = 0;
-      turn_count = 1;
+  if (i[8] && r[8] == smallest) {
+      power_left = 0.5 * MAX;
+      power_right = MAX;
     }
-    if(right_count > 1){
-      MAX = MAX2;
-      goRight();
-      right_count--;
-      turn = 1;
+  if (i[9] && r[9] == smallest) {
+      power_left = MAX;
+      power_right = 0.8 * MAX;
     }
-    else MAX = MAX1;
-    if(right_count == 1){
-      left_count = 0;
-      right_count = 0;
-      manouver_left = 0;
-      traverse = 0;
-      turn_count = 0;
-      turn = 0;
+  if (i[10] && r[10] == smallest) {
+      power_left = 0.8 * MAX;
+      power_right = MAX;
     }
-    if(forward_counter > 50){
-      MAX = MAX2;
-      goLeft();
-      }
-      else MAX = MAX1;
-    if((forward_counter > 50) && i[12]){
-      left_count = 0;
-      right_count = 0;
-      manouver_left = 0;
+  if (i[11] && r[11] == smallest) {
+      power_left = MAX;
+      power_right = MAX;
     }
-  }
-
-  if(manouver_right){
-    if(i[1] || i[3] && !traverse){
-      MAX = MAX2;
-        goRight();
-        right_count++;
-    }
-    else MAX = MAX1;
-    if(!i[1] && !i[3] && !turn_count){
-      goForward();
-      forward_counter++;
-      traverse = 1;
-    }
-    if(!i[7] && i[9] && !turn){
-      left_count = right_count + 1;
-      forward_counter = 0;
-      turn_count = 1;
-    }
-    if(left_count > 1){
-      MAX = MAX2;
-      goLeft();
-      left_count--;
-      turn = 1;
-    }
-    else MAX = MAX1;
-    if(left_count == 1){
-      right_count = 0;
-      left_count = 0;
-      manouver_right = 0;
-      traverse = 0;
-      turn_count = 0;
-      turn = 0;
-    }
-    if(forward_counter > 50){
-      MAX = MAX2;
-      goRight();
-      }
-      else MAX = MAX1;
-    if((forward_counter > 50) && i[11]){
-      right_count = 0;
-      left_count = 0;
-      manouver_right = 0;
-    }
-  }*/
-
-  if(last_forward != forward || last_left != left || last_right != right){
-    wait = WAIT;
-    waiting = 1;
-  }
-
-  if(wait>0) {
-    motor_left.set(0.0);
-    motor_right.set(0.0);
-    wait--;
-  }
-  else {
-    if(forward) goForward();
-    if(left) goLeft();
-    if(right) goRight();
-    waiting = 0;
+  if (i[12] && r[12] == smallest) {
+      power_left = MAX;
+      power_right = MAX;
     }
 
-  last_forward = forward;
-  last_left = left;
-  last_right = right;
-
-  
-  //if(timer < millis()) {
-  angle = angle + 4.63 * (left - right) * (left_speed + right_speed);
-  //}
-
-  if(forward) distance = 5.1 * (coder[LEFT] - coder_left_d + coder[RIGHT] - coder_right_d) / 2;
-  else {
-    distance = 0;
-  }
-    coder_left_d = coder[LEFT];
-    coder_right_d = coder[RIGHT];
-
-  x1 = x0 - distance * sin(angle * pi / 180);
-  y1 = y0 + distance * cos(angle * pi / 180);
-
-  x_dest = x_dest + distance * sin(angle);
-  y_dest = y_dest - distance * cos(angle);
-
-  x0 = x1;
-  y0 = y1;
-
-  //if(x_dest > -200 && x_dest < 200 && y_dest > -200 && y_dest < 200) Stop();
-
-  dest_distance = sqrt(pow(x_dest, 2) + pow(y_dest, 2));
-  dest_angle = -atan2(x_dest, y_dest) * 180 / pi;  
-
-  /*if(!manouver_left && !manouver_right && !waiting){
-    if (forward) forward_counter++;
-    if (forward_counter > 10) {
-      if ((fmod(dest_angle - angle + 540, 360) - 180) <= -20) {
-        goRight();
-        path_change = 1;
-      }
-      if ((fmod(dest_angle - angle + 540, 360) - 180) >= 20) {
-        goLeft();
-        path_change = 1;
-      }
-      if ((fmod(dest_angle - angle + 540, 360) - 180) > -20 && (fmod(dest_angle - angle + 540, 360) - 180) < 20) {
-        goForward();
-        forward_counter = 0;
-        path_change = 0;
-      }
-    }
-    else goForward();
-  }*/
-
-  if(finish){
-    lc.setRow(0, 0, B00011000);
-    lc.setRow(0, 1, B00100100);
-    lc.setRow(0, 2, B00100000);
-    lc.setRow(0, 3, B00010000);
-    lc.setRow(0, 4, B00001000);
-    lc.setRow(0, 5, B00000100);
-    lc.setRow(0, 6, B00100100);
-    lc.setRow(0, 7, B00011000);
-  }
-
-  if(timer < millis()){
-    Serial.print(r[1]);
-    Serial.print(" ");
-    Serial.print(r[2]);
-    Serial.print(" ");
-    Serial.print(r[3]);
-    Serial.print(" ");
-    Serial.print(r[4]);
-    Serial.print(" ");
-    Serial.print(r[5]);
-    Serial.print(" ");
-    Serial.print(r[6]);
-    Serial.print(" ");
-    Serial.print(r[7]);
-    Serial.print(" ");
-    Serial.print(r[8]);
-    Serial.print(" ");
-    Serial.print(r[9]);
-    Serial.print(" ");
-    Serial.print(r[10]);
-    Serial.print(" ");
-    Serial.print(r[11]);
-    Serial.print(" ");
-    Serial.print(r[12]);
-    Serial.print(" ");
-    Serial.print("Coder value: ");
-    Serial.print(left_speed);
-    Serial.print("[Left Wheel] ");
-    Serial.print(right_speed);
-    Serial.println("[Right Wheel]");
-    Serial.print(" ");
-    Serial.print(fmod((dest_angle - angle + 540), 360) - 180);
-    Serial.print(" ");
-    Serial.print(angle, 2);
-    Serial.print(" ");
-    Serial.print(dest_angle, 2);
-    Serial.print(" ");
-    if(forward) Serial.println("forward");
-    if(left) Serial.println("left");
-    if(right) Serial.println("right");
-    timer = millis() + 100;
-  }
-
-  //timer = millis() + 100;
-  
-}
-
-void LwheelSpeed()
-{
-  coder[LEFT] ++;    // count the left wheel encoder interrupts
-}
-
-
-void RwheelSpeed()
-{
-  coder[RIGHT] ++;   // count the right wheel encoder interrupts
-}
-
-void goForward()
-{
-  if (!finish) {
-    motor_left.set(power_left);
-    motor_right.set(power_right);
-    forward = 1;
-    left = 0;
-    right = 0;
-  }
-}
-
-void goLeft()
-{
-  if (!finish) {
-    motor_left.set(-power_left);
-    motor_right.set(power_right);
-    forward = 0;
-    left = 1;
-    right = 0;
-  }
-}
-
-void goRight()
-{
-  if (!finish) {
-    motor_left.set(power_left);
-    motor_right.set(-power_right);
-    forward = 0;
-    left = 0;
-    right = 1;
-  }
-}
-
-void Wait()
-{
-  if (!finish) {
-    motor_left.set(0.0);
-    motor_right.set(0.0);
-    //forward = 0;
-    //left = 0;
-    //right = 0;
-  }
-}
-
-void Stop()
-{
-  motor_left.set(0);
-  motor_right.set(0);
-  forward = 0;
-  left = 0;
-  right = 0;
-  finish = 1;
-}
-
-void printByte(byte character [])
-{
-  int i = 0;
-  for (i = 0; i < 8; i++)
-  {
-    lc.setRow(0, i, character[i]);
-  }
+  if (l[1] && l[2] && l[3] && l[4] && l[5] && l[6] && l[7] && l[8] && l[9] && l[10] && l[11] && l[12]){
+      power_left = 0.0;
+      power_right = 0.0;
+  };
+    
+  motor_left.set(power_left);
+  motor_right.set(power_right);
 }

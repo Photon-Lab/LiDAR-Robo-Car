@@ -5,7 +5,7 @@
 #include <PID_v1.h>
 #include <PCF8574.h>
 
-#define MAX 0.5
+#define MAX 0.6
 
 #define pi 3.1415926535897932384626433832795
 
@@ -49,7 +49,6 @@ L293D motor_right(10, 8, 9);
 
 double power_left = MAX;
 double power_right = MAX;
-//double inc = 0.01;
 
 int forward, left, right, finish;
 int last_forward, last_left, last_right, wait;
@@ -70,8 +69,6 @@ int left_speed, right_speed;
 double angle;
 double distance;
 
-//double constant = 5;
-
 double x1, y1, x0, y0;
 
 double Setpoint, Input, Output;    // PID controller
@@ -79,6 +76,10 @@ double Setpoint, Input, Output;    // PID controller
 double power;
 
 PID myPID(&Input, &Output, &Setpoint, 0.05, 0.01, 0.001,P_ON_M, DIRECT);
+
+int q, ct;
+
+double angle1, angle2;
 
 void setup() {
   Serial.begin(9600);
@@ -271,6 +272,8 @@ void setup() {
   sensor_orientation[10] = -135;
   sensor_orientation[11] = 175;
   sensor_orientation[12] = -175;
+
+  ct = millis();
 }
 
 void loop() {
@@ -300,7 +303,7 @@ void loop() {
   r[12] = sensor12.readRangeContinuousMillimeters();
 
   for(int n = 1; n<=12; n++){
-    if (r[n] < 300) a[n]++;
+    if (r[n] < 400) a[n]++;
     else a[n] = 0;
     if (a[n] > nwf) b[n] = fwn;
     if (b[n] > 0) {
@@ -312,23 +315,19 @@ void loop() {
     m[n] = r[n];
   }
 
-  //if (!i[1] && !i[2] && !i[3] && !i[4]) goForward();
+  /*if (!i[1] && !i[2] && !i[3] && !i[4]) goForward();
 
-  //if (i[1] || i[3]) goRight();
+  if (i[1] || i[3]) goRight();
 
-  //if (i[2] || i[4]) goLeft();
+  if (i[2] || i[4]) goLeft();*/
 
   static unsigned long timer = 0;                //print manager timer
 
-  //if (millis() - timer > 100) {
-    left_speed = coder[LEFT] - lastSpeed[LEFT];
-    right_speed = coder[RIGHT] - lastSpeed[RIGHT];
-    lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
-    lastSpeed[RIGHT] = coder[RIGHT];
-    //coder[LEFT] = 0;                 //clear the data buffer
-    //coder[RIGHT] = 0;
-    timer = millis();
-  //}
+  left_speed = coder[LEFT] - lastSpeed[LEFT];
+  right_speed = coder[RIGHT] - lastSpeed[RIGHT];
+  lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
+  lastSpeed[RIGHT] = coder[RIGHT];
+  timer = millis();
 
   Input = coder[LEFT] - coder[RIGHT];
   myPID.Compute();
@@ -341,9 +340,10 @@ void loop() {
     power_left = MAX;
   }
 
-  if(last_forward != forward || last_left != left || last_right != right) wait = 5;
+  /*if(last_forward != forward || last_left != left || last_right != right) wait = 0;
 
-  if(wait>0) {motor_left.set(0.0);
+  if(wait>0) {
+    motor_left.set(0.0);
     motor_right.set(0.0);
     wait--;
   }
@@ -354,35 +354,49 @@ void loop() {
 
   last_forward = forward;
   last_left = left;
-  last_right = right;
+  last_right = right;*/
 
-  angle = angle + 4.39 * (left - right) * (coder[LEFT] - coder_left_a + coder[RIGHT] - coder_right_a) / 2;
-  coder_left_a = coder[LEFT];
-  coder_right_a = coder[RIGHT];
+  q = millis() - ct;
 
-  if(forward) distance = 5 * (coder[LEFT] - coder_left_d + coder[RIGHT] - coder_right_d) / 2;
+  /*if(q > 0 && q < 2000) goForward();
+  if(q > 2000 && q < 5000) Wait();
+  if(q > 5000 && q < 5750) goLeft();
+  if(q > 5750 && q < 8750) Wait();
+  if(q > 8750 && q < 10750) goForward();
+  if(q > 10750 && q < 13750) Wait();
+  if(q > 13750 && q < 14500) goRight();
+  if(q > 14500 && q < 17500) Wait();
+  if(q > 17500 && q < 19500) goForward();
+  if(q > 19500) Stop();
+
+  angle = angle + 4.39 * (left - right) * (left_speed + right_speed) / 2;
+
+  if(forward) distance = 5.1 * (coder[LEFT] - coder_left_d + coder[RIGHT] - coder_right_d) / 2;
   else {
     distance = 0;
     }
     coder_left_d = coder[LEFT];
     coder_right_d = coder[RIGHT];
 
+  if(q < 10000) angle1 = angle;
+  if(q < 19000) angle2 = angle;*/
+
+  angle = -40.0;
+
   x1 = x0 - distance * sin(angle * pi / 180);
   y1 = y0 + distance * cos(angle * pi / 180);
 
   x0 = x1;
   y0 = y1;
-
-  //if(r[1] < 30 && r[1] > 0 && r[2] < 30 && r[2] > 0) angle = 0;
-
-  for(int n = 1; n <= 12; n++) {
+  
+  for(int n = 1; n <= 4; n++) {
     x[n] = x1 - sensor_distance[n] * sin((angle + sensor_angle[n]) * pi / 180);
     y[n] = y1 + sensor_distance[n] * cos((angle + sensor_angle[n]) * pi / 180);
 
     x_mapping[n] = x[n] - m[n] * sin((angle + sensor_angle[n] + sensor_orientation[n]) * pi / 180);
     y_mapping[n] = y[n] + m[n] * cos((angle + sensor_angle[n] + sensor_orientation[n]) * pi / 180);
 
-    if(r[n] > 50 && r[n] < 8190){
+    if(r[n] > 0 && r[n] < 8190 && q < 5000){
       Serial.print(x_mapping[n]);
       Serial.print(" ");
       Serial.print(y_mapping[n]);
@@ -390,9 +404,9 @@ void loop() {
       Serial.println(0.0);
     }
   }
-  //if((millis() - 10000) < 0) goLeft();
-  //else Stop();
-  goForward();
+  /*Serial.print(angle1);
+  Serial.print(" ");
+  Serial.println(angle2);*/
 }
 
 void LwheelSpeed()
@@ -436,6 +450,17 @@ void goRight()
     forward = 0;
     left = 0;
     right = 1;
+  }
+}
+
+void Wait()
+{
+  if (!finish) {
+    motor_left.set(0.0);
+    motor_right.set(0.0);
+    //forward = 0;
+    //left = 0;
+    //right = 0;
   }
 }
 
