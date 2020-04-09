@@ -7,7 +7,11 @@
 
 PCF8574 expander;
 
-VL53L0X sensor1;    // sensors
+#define N 100
+
+#define pi 3.1415926535897932384626433832795
+
+VL53L0X sensor1;    // SENSORS
 VL53L0X sensor2;
 VL53L0X sensor3;
 VL53L0X sensor4;
@@ -20,10 +24,10 @@ VL53L0X sensor10;
 VL53L0X sensor11;
 VL53L0X sensor12;
 
-#define nwf 1
-#define fwn 2
+#define nwf 1    // ignores erroneous 'near' readings
+#define fwn 2    // ignores erroneous 'far' readings
 
-int r[13];
+int r[13];    // variables for interpreting sensor readings
 int a[13];
 int b[13];
 int c[13];
@@ -35,19 +39,16 @@ int j[13];
 int k[13];
 int l[13];
 
-int t, n, n4, n5;
-
-L293D motor_left(11, 12, A0);    // motor driver
+L293D motor_left(11, 12, A0);    // MOTOR DRIVER
 L293D motor_right(10, 8, 9);
 
-double power_left = 1.0;
-double power_right = 1.0;
-double inc = 0.01;
+#define MAX 0.6    // maximum motor power
+#define MIN 0.3 
+double power = MAX;
+double power_left = MAX;
+double power_right = MAX;
 
-int forward, left, right, finish;
-int last_forward, last_left, last_right, wait;
-
-#define LEFT 1    // wheel encoders
+#define LEFT 1    // WHEEL ENCODERS
 #define RIGHT 0
 
 long coder[2] = {
@@ -57,41 +58,26 @@ int lastSpeed[2] = {
   0, 0
 };
 
-int coder_left_a, coder_right_a, coder_left_d, coder_right_d;
-
 int left_speed, right_speed;
-int encoder_difference;
-double angle;
-int distance, last_distance, dest_distance;
-int forward_counter;
 
-double destination[2] = {2, 30};  // distance(m), angle(deg)
-double x_dest, y_dest;
-double x1, y1, x0, y0;
-double constant;
+double Setpoint, Input, Output;    // PID CONTROLLER
 
-double Setpoint, Input, Output;    // PID controller
+PID myPID(&Input, &Output, &Setpoint, 0.001, 0, 0.0001, P_ON_M, DIRECT);
 
-double power;
-
-#define MAX 0.5
-
-int sensor, manouver;
-
-PID myPID(&Input, &Output, &Setpoint,0.02,0,0,P_ON_M, DIRECT);
-
-int DIN = A1;    // LED matrix
+int DIN = A1;    // LED MATRIX
 int CS =  A2;
 int CLK = A3;
 
 byte three[8] = {0x3c,0x04,0x04,0x3c,0x04,0x04,0x3c,0x00};
 byte two[8] = {0x3c,0x04,0x04,0x3c,0x20,0x20,0x3c,0x00};
 byte one[8] = {0x04,0x04,0x04,0x04,0x04,0x04,0x04,0x00};
-byte x[8] = {0xff, 0x81, 0xbd, 0xa5, 0xa5, 0xbd, 0x81, 0xff};
+byte x[8] = {0xff,0x81,0xbd,0xa5,0xa5,0xbd,0x81,0xff};
 
 LedControl lc = LedControl(DIN, CLK, CS, 0);
 
 int error;
+
+int r5, r6;
 
 void setup() {
   Serial.begin(9600);
@@ -131,15 +117,11 @@ void setup() {
   Serial.println("sensor1");
   sensor1.init();
 
-  delay(100);
-
   sensor1.setAddress((uint8_t)1);
 
   expander.digitalWrite(1, HIGH);
   Serial.println("sensor2");
   sensor2.init();
-
-  delay(100);
 
   sensor2.setAddress((uint8_t)2);
 
@@ -147,15 +129,11 @@ void setup() {
   Serial.println("sensor3");
   sensor3.init();
 
-  delay(100);
-
   sensor3.setAddress((uint8_t)3);
 
   expander.digitalWrite(3, HIGH);
   Serial.println("sensor4");
   sensor4.init();
-
-  delay(100);
 
   sensor4.setAddress((uint8_t)4);
 
@@ -163,15 +141,11 @@ void setup() {
   Serial.println("sensor5");
   sensor5.init();
 
-  delay(100);
-
   sensor5.setAddress((uint8_t)5);
 
   expander.digitalWrite(5, HIGH);
   Serial.println("sensor6");
   sensor6.init();
-
-  delay(100);
 
   sensor6.setAddress((uint8_t)6);
   
@@ -179,15 +153,11 @@ void setup() {
   Serial.println("sensor7");
   sensor7.init();
 
-  delay(100);
-
   sensor7.setAddress((uint8_t)7);
 
   expander.digitalWrite(7, HIGH);
   Serial.println("sensor8");
   sensor8.init();
-
-  delay(100);
 
   sensor8.setAddress((uint8_t)8);
 
@@ -195,15 +165,11 @@ void setup() {
   Serial.println("sensor9");
   sensor9.init();
 
-  delay(100);
-
   sensor9.setAddress((uint8_t)9);
 
   digitalWrite(5, HIGH);
   Serial.println("sensor10");
   sensor10.init();
-
-  delay(100);
 
   sensor10.setAddress((uint8_t)10);
 
@@ -211,39 +177,36 @@ void setup() {
   Serial.println("sensor11");
   sensor11.init();
 
-  delay(100);
-
   sensor11.setAddress((uint8_t)11);
 
   digitalWrite(7, HIGH);
   Serial.println("sensor12");
   sensor12.init();
 
-  delay(100);
-
   sensor12.setAddress((uint8_t)12);
 
-  sensor1.startContinuous(100);
-  sensor2.startContinuous(100);
-  sensor3.startContinuous(100);
-  sensor4.startContinuous(100);
-  sensor5.startContinuous(100);
-  sensor6.startContinuous(100);
-  sensor7.startContinuous(100);
-  sensor8.startContinuous(100);
-  sensor9.startContinuous(100);
-  sensor10.startContinuous(100);
-  sensor11.startContinuous(100);
-  sensor12.startContinuous(100);
+  sensor1.startContinuous(N);
+  sensor2.startContinuous(N);
+  sensor3.startContinuous(N);
+  sensor4.startContinuous(N);
+  sensor5.startContinuous(N);
+  sensor6.startContinuous(N);
+  sensor7.startContinuous(N);
+  sensor8.startContinuous(N);
+  sensor9.startContinuous(N);
+  sensor10.startContinuous(N);
+  sensor11.startContinuous(N);
+  sensor12.startContinuous(N);
 
-  attachInterrupt(LEFT, LwheelSpeed, CHANGE);    // wheel encoders
-  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(3), LwheelSpeed, CHANGE);    // wheel encoders
+  attachInterrupt(digitalPinToInterrupt(2), RwheelSpeed, CHANGE);
 
-  myPID.SetOutputLimits(0, 2 * MAX);
+  myPID.SetOutputLimits(-MAX, MAX);
+  //myPID.SetOutputLimits(MIN, 2.0 - MIN);
   
-  Input = coder[LEFT] - coder[RIGHT];
+  Input = r[5] - r[6];
   Setpoint = 0;
-  Output = MAX;
+  Output = 0;
   
   myPID.SetMode(AUTOMATIC);
 
@@ -258,65 +221,41 @@ void setup() {
   printByte(one);
   delay(1000);
   lc.clearDisplay(0);
-
-  x_dest = destination[0] * cos(destination[1]);
-  y_dest = destination[0] * sin(destination[1]);
 }
 
 void loop() {
 
   r[1] = sensor1.readRangeContinuousMillimeters();
-  Serial.print(r[1]);
-  Serial.print(" ");
 
   r[2] = sensor2.readRangeContinuousMillimeters();
-  Serial.print(r[2]);
-  Serial.print(" ");
 
   r[3] = sensor3.readRangeContinuousMillimeters();
-  Serial.print(r[3]);
-  Serial.print(" ");
 
   r[4] = sensor4.readRangeContinuousMillimeters();
-  Serial.print(r[4]);
-  Serial.print(" ");
 
-  r[5] = sensor5.readRangeContinuousMillimeters();
-  Serial.print(r[5]);
-  Serial.print(" ");
+  r5 = sensor5.readRangeContinuousMillimeters();
 
-  r[6] = sensor6.readRangeContinuousMillimeters();
-  Serial.print(r[6]);
-  Serial.print(" ");
+  r6 = sensor6.readRangeContinuousMillimeters();
 
   r[7] = sensor7.readRangeContinuousMillimeters();
-  Serial.print(r[7]);
-  Serial.print(" ");
 
   r[8] = sensor8.readRangeContinuousMillimeters();
-  Serial.print(r[8]);
-  Serial.print(" ");
-
+  
   r[9] = sensor9.readRangeContinuousMillimeters();
-  Serial.print(r[9]);
-  Serial.print(" ");
-
+  
   r[10] = sensor10.readRangeContinuousMillimeters();
-  Serial.print(r[10]);
-  Serial.print(" ");
-
+  
   r[11] = sensor11.readRangeContinuousMillimeters();
-  Serial.print(r[11]);
-  Serial.print(" ");
-
+  
   r[12] = sensor12.readRangeContinuousMillimeters();
-  Serial.print(r[12]);
-  Serial.println(" ");
 
-  Serial.println();
+  if(r5 > 1000) r[5] = 1000;
+    else r[5] = r5;
+  if(r6 > 1000) r[6] = 1000;
+    else r[6] = r6;
 
   for(int n = 1; n<=12; n++){
-    if (r[n] < 300) a[n]++;
+    if (r[n] < 300 && r[n] > 0) a[n]++;
     else a[n] = 0;
     if (a[n] > nwf) b[n] = fwn;
     if (b[n] > 0) {
@@ -346,7 +285,7 @@ void loop() {
     l[n] = !i[n] && !j[n] && !k[n];
   }
 
-  if (r[1] == -1 || r[2] == -1 || r[3] == -1 || r[4] == -1 || r[5] == -1) {
+  /*if (r[1] == -1 || r[2] == -1 || r[3] == -1 || r[4] == -1) {
     lc.setRow(0, 0, B11111111);
     lc.setRow(0, 1, B10000001);
     lc.setRow(0, 2, B10111101);
@@ -706,157 +645,111 @@ void loop() {
     else lc.setLed(0, 5, 6, 0);
   }
 
-  if (!l[1] && !l[2] && !l[3] && !l[4] && !l[5] && !l[6] && !l[7] && !l[8] && !l[9] && !l[10] && !l[11] && !l[12]) lc.clearDisplay(0);
+  if (!l[1] && !l[2] && !l[3] && !l[4] && !l[5] && !l[6] && !l[7] && !l[8] && !l[9] && !l[10] && !l[11] && !l[12]) lc.clearDisplay(0);*/
 
-  
+static unsigned long timer = 0;                //print manager timer
 
-  if (i[1]) {
-      power_left = -MAX;
-      power_right = 0.9 * -MAX;
+  left_speed = coder[LEFT] - lastSpeed[LEFT];
+  right_speed = coder[RIGHT] - lastSpeed[RIGHT];
+  lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
+  lastSpeed[RIGHT] = coder[RIGHT];
+
+  Input = r[5] - r[6];
+  myPID.Compute();
+  //if(r[5] < 50 && r[6] < 50) power = Output;
+  //else power = 0.0;
+  power = Output;
+
+  if(power <= 0) {power_left = MAX + power;
+    power_right = MAX;
+  }
+  if(power > 0) {power_right = MAX - power;
+    power_left = MAX;
+  }
+
+  //motor_left.set(power_left);
+  //motor_right.set(0.79 * power_right);
+
+  //motor_left.set(0.3);
+  //motor_right.set(0.3);
+
+  if((r[5] > 500) && (r[6] > 500)){
+    power_left = MAX;
+    power_right = MAX;
     }
-  if (i[2]) {
-      power_left = 0.9 * -MAX;
-      power_right = -MAX;
+
+  if((r[1] < r[2]) && (r[1] < 300)){
+    power_left = MAX;
+    power_right = 0;
     }
-  if (i[3]) {
-      power_left = -MAX;
-      power_right = 0.8 * -MAX;
+
+  if((r[1] > r[2]) && (r[2] < 300)){
+    power_left = 0;
+    power_right = MAX;
     }
-  if (i[4]) {
-      power_left = 0.8 * -MAX;
-      power_right = -MAX;
-    }
-  if (i[5]) {
-      power_left = -MAX;
-      power_right = 0.7 * -MAX;
-    }
-  if (i[6]) {
-      power_left = 0.7 * -MAX;
-      power_right = -MAX;
-    }
-  if (i[7]) {
-      power_left = MAX;
-      power_right = 0.5 * MAX;
-    }
-  if (i[8]) {
-      power_left = 0.5 * MAX;
-      power_right = MAX;
-    }
-  if (i[9]) {
-      power_left = MAX;
-      power_right = 0.9 * MAX;
-    }
-  if (i[10]) {
-      power_left = 0.9 * MAX;
-      power_right = MAX;
-    }
-  if (i[11]) {
-      power_left = MAX;
-      power_right = MAX;
-    }
-  if (i[12]) {
-      power_left = MAX;
-      power_right = MAX;
-    }
-    
+
   motor_left.set(power_left);
   motor_right.set(power_right);
 
-  static unsigned long timer = 0;                //print manager timer
+  /*if(finish){
+    lc.setRow(0, 0, B00011000);
+    lc.setRow(0, 1, B00100100);
+    lc.setRow(0, 2, B00100000);
+    lc.setRow(0, 3, B00010000);
+    lc.setRow(0, 4, B00001000);
+    lc.setRow(0, 5, B00000100);
+    lc.setRow(0, 6, B00100100);
+    lc.setRow(0, 7, B00011000);
+  }*/
 
-  if (millis() - timer > 100) {
+  if(timer < millis()){
+    /*Serial.print(r[1]);
+    Serial.print(" ");
+    Serial.print(r[2]);
+    Serial.print(" ");
+    Serial.print(r[3]);
+    Serial.print(" ");
+    Serial.print(r[4]);
+    Serial.print(" ");*/
     Serial.print("Coder value: ");
     Serial.print(left_speed);
+    //Serial.print(coder[LEFT]);
     Serial.print("[Left Wheel] ");
     Serial.print(right_speed);
-    Serial.println("[Right Wheel]");
+    //Serial.print(coder[RIGHT]);
+    Serial.print("[Right Wheel]");
+    Serial.print(" ");
+    Serial.print(r[5]);
+    Serial.print(" ");
+    Serial.print(r[6]);
+    Serial.print(" ");
+    Serial.print(Output);
     Serial.println();
-
-    left_speed = coder[LEFT] - lastSpeed[LEFT];
-    right_speed = coder[RIGHT] - lastSpeed[RIGHT];
-    lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
-    lastSpeed[RIGHT] = coder[RIGHT];
-    //coder[LEFT] = 0;                 //clear the data buffer
-    //coder[RIGHT] = 0;
-    timer = millis();
-  }
-
-  /*if(forward) {
-  Input = left_speed - right_speed;
-  myPID.Compute();
-  power = Output;
-  }
-
-  if(power <= MAX) {power_left = power;
-    power_right = MAX;
-  }
-  if(power > MAX) {power_right = 2 * MAX - power;
-    power_left = MAX;
-  }
-}*/
+    /*Serial.print(" ");
+    Serial.print(r[7]);
+    Serial.print(" ");
+    Serial.print(r[8]);
+    Serial.print(" ");
+    Serial.print(r[9]);
+    Serial.print(" ");
+    Serial.print(r[10]);
+    Serial.print(" ");
+    Serial.print(r[11]);
+    Serial.print(" ");
+    Serial.print(r[12]);
+    Serial.println(" ");*/
+    timer = millis() + 1000;
+    }
+}
 
 void LwheelSpeed()
 {
   coder[LEFT] ++;    // count the left wheel encoder interrupts
 }
 
-
 void RwheelSpeed()
 {
   coder[RIGHT] ++;   // count the right wheel encoder interrupts
-}
-
-void goForward()
-{
-  if (!finish) {
-    motor_left.set(power_left);
-    motor_right.set(power_right);
-    forward = 1;
-    left = 0;
-    right = 0;
-  }
-}
-
-void goLeft()
-{
-  if (!finish) {
-    motor_left.set(-power_left);
-    motor_right.set(power_right);
-    forward = 0;
-    left = 1;
-    right = 0;
-  }
-}
-
-void goRight()
-{
-  if (!finish) {
-    motor_left.set(power_left);
-    motor_right.set(-power_right);
-    forward = 0;
-    left = 0;
-    right = 1;
-  }
-}
-
-void Stop()
-{
-  motor_left.set(0);
-  motor_right.set(0);
-  forward = 0;
-  left = 0;
-  right = 0;
-  finish = 1;
-}
-
-void manouverLeft()
-{
-  
-}
-
-void manouverRight()
-{
-  manouver_right = 1;  
 }
 
 void printByte(byte character [])

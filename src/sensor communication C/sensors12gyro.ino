@@ -4,18 +4,16 @@
 #include <LedControl.h>
 #include <PID_v1.h>
 #include <PCF8574.h>
+#include <MPU6050_tockn.h>
 
 PCF8574 expander;
+
+MPU6050 mpu6050(Wire);
 
 #define DISTANCE 1000
 #define ANGLE -30
 
-#define N 0
-
-#define MAX 0.6
-#define DIST1 500
-#define DIST2 400
-#define WAIT 5
+#define N 100
 
 #define pi 3.1415926535897932384626433832795
 
@@ -50,8 +48,9 @@ int l[13];
 L293D motor_left(11, 12, A0);    // MOTOR DRIVER
 L293D motor_right(10, 8, 9);
 
-double MAX1 = 0.5;
-double MAX2 = 0.5;
+double MAX = 1.0;    // maximum motor power
+#define MAX1 1.0
+#define MAX2 1.0
 double power = MAX;
 double power_left = MAX;
 double power_right = MAX;
@@ -74,11 +73,15 @@ int left_speed, right_speed;
 
 double distance;    // POSITION TRACKING
 double angle;
+double yaw;
+
+double angle_gyro;
+double angle_encoders;
 
 double destination[2] = {DISTANCE, ANGLE};    // distance(m), angle(deg)
 double x_dest, y_dest;
-double dest_distance = DISTANCE;
-double dest_angle = ANGLE;
+double dest_distance = destination[0];
+double dest_angle = destination[1];
 
 double x1, y1, x0, y0;
 
@@ -86,11 +89,10 @@ int manouver_left, manouver_right, sensor;    // MOVEMENT
 int left_count, right_count;
 int traverse, turn_count, turn, slow;
 
-int path_change;
-
 int last_forward, last_left, last_right, wait, waiting;
 
 int forward_counter;
+int path_change;
 
 double Setpoint, Input, Output;    // PID CONTROLLER
 
@@ -109,9 +111,14 @@ LedControl lc = LedControl(DIN, CLK, CS, 0);
 
 int error;
 
+int ref;
+
 void setup() {
   Serial.begin(9600);
   Wire.begin();
+
+  mpu6050.begin();
+  mpu6050.calcGyroOffsets(true);
 
   expander.begin(0x20);
 
@@ -147,7 +154,7 @@ void setup() {
   Serial.println("sensor1");
   sensor1.init();
 
-  delay(100);
+  //delay(100);
 
   sensor1.setAddress((uint8_t)1);
 
@@ -155,7 +162,7 @@ void setup() {
   Serial.println("sensor2");
   sensor2.init();
 
-  delay(100);
+  //delay(100);
 
   sensor2.setAddress((uint8_t)2);
 
@@ -163,7 +170,7 @@ void setup() {
   Serial.println("sensor3");
   sensor3.init();
 
-  delay(100);
+  //delay(100);
 
   sensor3.setAddress((uint8_t)3);
 
@@ -171,7 +178,7 @@ void setup() {
   Serial.println("sensor4");
   sensor4.init();
 
-  delay(100);
+  //delay(100);
 
   sensor4.setAddress((uint8_t)4);
 
@@ -179,7 +186,7 @@ void setup() {
   Serial.println("sensor5");
   sensor5.init();
 
-  delay(100);
+  //delay(100);
 
   sensor5.setAddress((uint8_t)5);
 
@@ -187,7 +194,7 @@ void setup() {
   Serial.println("sensor6");
   sensor6.init();
 
-  delay(100);
+  //delay(100);
 
   sensor6.setAddress((uint8_t)6);
   
@@ -195,7 +202,7 @@ void setup() {
   Serial.println("sensor7");
   sensor7.init();
 
-  delay(100);
+  //delay(100);
 
   sensor7.setAddress((uint8_t)7);
 
@@ -203,7 +210,7 @@ void setup() {
   Serial.println("sensor8");
   sensor8.init();
 
-  delay(100);
+  //delay(100);
 
   sensor8.setAddress((uint8_t)8);
 
@@ -211,7 +218,7 @@ void setup() {
   Serial.println("sensor9");
   sensor9.init();
 
-  delay(100);
+  //delay(100);
 
   sensor9.setAddress((uint8_t)9);
 
@@ -219,7 +226,7 @@ void setup() {
   Serial.println("sensor10");
   sensor10.init();
 
-  delay(100);
+  //delay(100);
 
   sensor10.setAddress((uint8_t)10);
 
@@ -227,7 +234,7 @@ void setup() {
   Serial.println("sensor11");
   sensor11.init();
 
-  delay(100);
+  //delay(100);
 
   sensor11.setAddress((uint8_t)11);
 
@@ -235,7 +242,7 @@ void setup() {
   Serial.println("sensor12");
   sensor12.init();
 
-  delay(100);
+  //delay(100);
 
   sensor12.setAddress((uint8_t)12);
 
@@ -331,8 +338,10 @@ void loop() {
 
   //Serial.println();
 
+  mpu6050.update();
+
   for(int n = 1; n<=12; n++){
-    if (r[n] < DIST1 && r[n] > 0) a[n]++;
+    if (r[n] < 300 && r[n] > 0) a[n]++;
     else a[n] = 0;
     if (a[n] > nwf) b[n] = fwn;
     if (b[n] > 0) {
@@ -341,7 +350,7 @@ void loop() {
     }
     else i[n] = 0;
   
-    if (/*r[n] >= 300 && */r[n] < DIST2) c[n]++;
+    if (r[n] >= 300 && r[n] < 500) c[n]++;
     else c[n] = 0;
     if (c[n] > nwf) d[n] = fwn;
     if (d[n] > 0) {
@@ -362,7 +371,7 @@ void loop() {
     l[n] = !i[n] && !j[n] && !k[n];
   }
 
-  if (r[1] == -1 || r[2] == -1 || r[3] == -1 || r[4] == -1) {
+  /*if (r[1] == -1 || r[2] == -1 || r[3] == -1 || r[4] == -1 || r[5] == -1) {
     lc.setRow(0, 0, B11111111);
     lc.setRow(0, 1, B10000001);
     lc.setRow(0, 2, B10111101);
@@ -722,24 +731,23 @@ void loop() {
     else lc.setLed(0, 5, 6, 0);
   }
 
-  if (!l[1] && !l[2] && !l[3] && !l[4] && !l[5] && !l[6] && !l[7] && !l[8] && !l[9] && !l[10] && !l[11] && !l[12]) lc.clearDisplay(0);
+  if (!l[1] && !l[2] && !l[3] && !l[4] && !l[5] && !l[6] && !l[7] && !l[8] && !l[9] && !l[10] && !l[11] && !l[12]) lc.clearDisplay(0);*/
 
 static unsigned long timer = 0;                //print manager timer
 
-    /*Serial.print("Coder value: ");
-    Serial.print(left_speed);
-    Serial.print("[Left Wheel] ");
-    Serial.print(right_speed);
-    Serial.println("[Right Wheel]");
-    Serial.println();*/
+  Serial.print("Coder value: ");
+  Serial.print(left_speed);
+  Serial.print("[Left Wheel] ");
+  Serial.print(right_speed);
+  Serial.println("[Right Wheel]");
+  Serial.println();
 
-  //if(timer < millis()){
-    left_speed = coder[LEFT] - lastSpeed[LEFT];
-    right_speed = coder[RIGHT] - lastSpeed[RIGHT];
-    lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
-    lastSpeed[RIGHT] = coder[RIGHT];
-  //}
-  
+  left_speed = coder[LEFT] - lastSpeed[LEFT];
+  right_speed = coder[RIGHT] - lastSpeed[RIGHT];
+  lastSpeed[LEFT] = coder[LEFT];   //record the latest speed value
+  lastSpeed[RIGHT] = coder[RIGHT];
+  timer = millis();
+
   Input = coder[LEFT] - coder[RIGHT];
   myPID.Compute();
   power = Output;
@@ -751,31 +759,15 @@ static unsigned long timer = 0;                //print manager timer
     power_left = MAX;
   }
 
-  if (!i[1] && !i[2] && !j[3] && !j[4] && !path_change) goForward();
+  if (!i[1] && !i[2] && !i[3] && !i[4] && !path_change) goForward();
 
-  if (i[1] || j[3]) goRight();
+  if (i[1] || i[3]) goRight();
 
-  if (i[2] || j[4]) goLeft();
-
-  if((i[1] || j[3]) && (i[2] || j[4])){
-    if((r[1] + r[3]) < r[2] + r[4]) goRight();
-    else goLeft();
-    }
-
-  /*if (!i[1] && !i[2]) goForward();
-
-  if (i[1]) goRight();
-
-  if (i[2]) goLeft();
-
-  if(i[1] && i[2]){
-    if((r[1]) < r[2]) goRight();
-    else goLeft();
-    }*/
+  if (i[2] || i[4]) goLeft();
 
   if (i[1] || i[2] || i[3] || i[4] || i[5] || i[6] || i[7] || i[8] || i[9] || i[10] || i[11] || i[12]) sensor = 1;
 
-  /*if(!manouver_left && !manouver_right){
+  if(!manouver_left && !manouver_right){
     if (i[2] || i[4]) manouver_left = 1;
   
     if (i[1] || i[3]) manouver_right = 1;
@@ -793,7 +785,7 @@ static unsigned long timer = 0;                //print manager timer
       if(r[2] < r[1]) manouver_left = 1;
       else manouver_right = 1;
     }
-  }*/
+  }
 
   /*if(manouver_left){
     if((i[2] || i[4]) && !traverse){
@@ -807,12 +799,12 @@ static unsigned long timer = 0;                //print manager timer
         slow = 0;
       }
     }
-    if(!i[2] && !i[4] && i[8] && !turn_count){
+    if(!i[2] && !i[4] && i[6] && !turn_count){
       goForward();
       forward_counter++;
       traverse = 1;
     }
-    if(!i[6] && !i[8] && !turn){
+    if(!i[6] && i[8] && !turn){
       right_count = left_count + 1;
       forward_counter = 0;
       turn_count = 1;
@@ -847,12 +839,12 @@ static unsigned long timer = 0;                //print manager timer
         goRight();
         right_count++;
     }
-    if(!i[1] && !i[3] && i[7] && !turn_count){
+    if(!i[1] && !i[3] && i[5] && !turn_count){
       goForward();
       forward_counter++;
       traverse = 1;
     }
-    if(!i[5] && !i[7] && !turn){
+    if(!i[5] && i[7] && !turn){
       left_count = right_count + 1;
       forward_counter = 0;
       turn_count = 1;
@@ -880,13 +872,11 @@ static unsigned long timer = 0;                //print manager timer
     }
   }*/
 
-  /*if(manouver_left){
+  if(manouver_left){
     if((i[2] || i[4]) && !traverse){
-        MAX = MAX2;
         goLeft();
         left_count++;
       }
-    else MAX = MAX1;
     if(!i[2] && !i[4] && !turn_count){
       goForward();
       forward_counter++;
@@ -898,12 +888,10 @@ static unsigned long timer = 0;                //print manager timer
       turn_count = 1;
     }
     if(right_count > 1){
-      MAX = MAX2;
       goRight();
       right_count--;
       turn = 1;
     }
-    else MAX = MAX1;
     if(right_count == 1){
       left_count = 0;
       right_count = 0;
@@ -913,10 +901,8 @@ static unsigned long timer = 0;                //print manager timer
       turn = 0;
     }
     if(forward_counter > 50){
-      MAX = MAX2;
       goLeft();
       }
-      else MAX = MAX1;
     if((forward_counter > 50) && i[12]){
       left_count = 0;
       right_count = 0;
@@ -926,11 +912,9 @@ static unsigned long timer = 0;                //print manager timer
 
   if(manouver_right){
     if(i[1] || i[3] && !traverse){
-      MAX = MAX2;
         goRight();
         right_count++;
     }
-    else MAX = MAX1;
     if(!i[1] && !i[3] && !turn_count){
       goForward();
       forward_counter++;
@@ -942,12 +926,10 @@ static unsigned long timer = 0;                //print manager timer
       turn_count = 1;
     }
     if(left_count > 1){
-      MAX = MAX2;
       goLeft();
       left_count--;
       turn = 1;
     }
-    else MAX = MAX1;
     if(left_count == 1){
       right_count = 0;
       left_count = 0;
@@ -957,19 +939,17 @@ static unsigned long timer = 0;                //print manager timer
       turn = 0;
     }
     if(forward_counter > 50){
-      MAX = MAX2;
       goRight();
       }
-      else MAX = MAX1;
     if((forward_counter > 50) && i[11]){
       right_count = 0;
       left_count = 0;
       manouver_right = 0;
     }
-  }*/
+  }
 
   if(last_forward != forward || last_left != left || last_right != right){
-    wait = WAIT;
+    wait = 10;
     waiting = 1;
   }
 
@@ -989,51 +969,62 @@ static unsigned long timer = 0;                //print manager timer
   last_left = left;
   last_right = right;
 
-  
-  //if(timer < millis()) {
-  angle = angle + 4.63 * (left - right) * (left_speed + right_speed);
-  //}
+  //if(last_forward && !forward) yaw = mpu6050.getAngleZ();
+  //if(left || right) angle = angle + (left - right) * (mpu6050.getAngleZ() - yaw);
 
-  if(forward) distance = 5.1 * (coder[LEFT] - coder_left_d + coder[RIGHT] - coder_right_d) / 2;
+  if (!ref){
+    yaw = mpu6050.getAngleZ();
+    ref = 1;
+  }
+
+  /*angle_gyro = mpu6050.getAngleZ() - yaw;
+
+  angle_encoders = angle_encoders + 4.63 * (left - right) * (left_speed - right_speed);
+
+  angle = (angle_gyro + angle_encoders) / 2;*/
+
+  angle = mpu6050.getAngleZ() - yaw;
+  
+  if(forward) distance = 5.1 * (left_speed + right_speed) / 2;
   else {
     distance = 0;
   }
-    coder_left_d = coder[LEFT];
-    coder_right_d = coder[RIGHT];
+    //coder_left_d = coder[LEFT];
+    //coder_right_d = coder[RIGHT];
 
   x1 = x0 - distance * sin(angle * pi / 180);
   y1 = y0 + distance * cos(angle * pi / 180);
 
-  x_dest = x_dest + distance * sin(angle);
-  y_dest = y_dest - distance * cos(angle);
+  x_dest = x_dest + distance * sin(angle * pi / 180);
+  y_dest = y_dest - distance * cos(angle * pi / 180);
 
   x0 = x1;
   y0 = y1;
 
-  //if(x_dest > -200 && x_dest < 200 && y_dest > -200 && y_dest < 200) Stop();
+  if(x_dest > -200 && x_dest < 200 && y_dest > -200 && y_dest < 200) Stop();
 
   dest_distance = sqrt(pow(x_dest, 2) + pow(y_dest, 2));
-  dest_angle = -atan2(x_dest, y_dest) * 180 / pi;  
+  dest_angle = -atan2(x_dest, y_dest) * 180 / pi;
 
-  /*if(!manouver_left && !manouver_right && !waiting){
+  if(!manouver_left && !manouver_right && !waiting) {
     if (forward) forward_counter++;
     if (forward_counter > 10) {
-      if ((fmod(dest_angle - angle + 540, 360) - 180) <= -20) {
+      if ((fmod(dest_angle - angle + 540, 360) - 180) <= -10) {
         goRight();
         path_change = 1;
       }
-      if ((fmod(dest_angle - angle + 540, 360) - 180) >= 20) {
+      if ((fmod(dest_angle - angle + 540, 360) - 180) >= 10) {
         goLeft();
         path_change = 1;
       }
-      if ((fmod(dest_angle - angle + 540, 360) - 180) > -20 && (fmod(dest_angle - angle + 540, 360) - 180) < 20) {
+      if ((fmod(dest_angle - angle + 540, 360) - 180) > -10 && (fmod(dest_angle - angle + 540, 360) - 180) < 10) {
         goForward();
         forward_counter = 0;
         path_change = 0;
       }
     }
     else goForward();
-  }*/
+  }
 
   if(finish){
     lc.setRow(0, 0, B00011000);
@@ -1047,6 +1038,20 @@ static unsigned long timer = 0;                //print manager timer
   }
 
   if(timer < millis()){
+    Serial.print("Angle: ");
+    Serial.print(angle);
+    Serial.print(" Distance: ");
+    Serial.print(distance);
+    Serial.print(" Dest X: ");
+    Serial.print(x_dest);
+    Serial.print(" Dest Y: ");
+    Serial.print(y_dest);
+    Serial.print(" Dest angle: ");
+    Serial.print(dest_angle);
+    Serial.print(" Dest distance: ");
+    Serial.print(dest_distance);
+    Serial.print(" Mod: ");
+    Serial.print(fmod(dest_angle - angle + 540, 360) - 180);
     Serial.print(r[1]);
     Serial.print(" ");
     Serial.print(r[2]);
@@ -1071,26 +1076,14 @@ static unsigned long timer = 0;                //print manager timer
     Serial.print(" ");
     Serial.print(r[12]);
     Serial.print(" ");
-    Serial.print("Coder value: ");
-    Serial.print(left_speed);
-    Serial.print("[Left Wheel] ");
-    Serial.print(right_speed);
-    Serial.println("[Right Wheel]");
-    Serial.print(" ");
-    Serial.print(fmod((dest_angle - angle + 540), 360) - 180);
-    Serial.print(" ");
-    Serial.print(angle, 2);
-    Serial.print(" ");
-    Serial.print(dest_angle, 2);
-    Serial.print(" ");
-    if(forward) Serial.println("forward");
-    if(left) Serial.println("left");
-    if(right) Serial.println("right");
+    if(forward) Serial.print("FORWARD");
+    if(left) Serial.print("LEFT");
+    if(right) Serial.print("RIGHT");
+    if(waiting) Serial.print("WAITING");
+    if(finish) Serial.print("STOP");
+    Serial.println(" ");
     timer = millis() + 100;
-  }
-
-  //timer = millis() + 100;
-  
+    }
 }
 
 void LwheelSpeed()
@@ -1142,9 +1135,9 @@ void Wait()
   if (!finish) {
     motor_left.set(0.0);
     motor_right.set(0.0);
-    //forward = 0;
-    //left = 0;
-    //right = 0;
+    forward = 0;
+    left = 0;
+    right = 0;
   }
 }
 
