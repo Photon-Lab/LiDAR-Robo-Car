@@ -8,8 +8,8 @@ import styles from "./styles.module.css";
 
 const features = [
   {
-    title: <>Easy to Use</>,
-    imageUrl: "img/car/car_side.jpg",
+    title: <>2-Wheel Drive</>,
+    imageUrl: "img/car/car_side_sq.jpg",
     description: (
       <>
         Docusaurus was designed from the ground up to be easily installed and used to get your
@@ -18,8 +18,8 @@ const features = [
     ),
   },
   {
-    title: <>Focus on What Matters</>,
-    imageUrl: "img/car/car_front.jpg",
+    title: <>Autonomous Driving</>,
+    imageUrl: "img/car/car_front_sq.jpg",
     description: (
       <>
         Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go ahead and move your
@@ -28,8 +28,8 @@ const features = [
     ),
   },
   {
-    title: <>Powered by React</>,
-    imageUrl: "img/car/car_sensors.jpg",
+    title: <>12 ToF Sensors</>,
+    imageUrl: "img/car/car_sensors_sq.jpg",
     description: (
       <>
         Extend or customize your website layout by reusing React. Docusaurus can be extended while
