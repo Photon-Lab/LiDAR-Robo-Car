@@ -9,7 +9,7 @@ import styles from "./styles.module.css";
 const features = [
   {
     title: <>Easy to Use</>,
-    imageUrl: "img/car_side.jpg",
+    imageUrl: "img/car/car_side.jpg",
     description: (
       <>
         Docusaurus was designed from the ground up to be easily installed and used to get your
@@ -19,7 +19,7 @@ const features = [
   },
   {
     title: <>Focus on What Matters</>,
-    imageUrl: "img/car_front.jpg",
+    imageUrl: "img/car/car_front.jpg",
     description: (
       <>
         Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go ahead and move your
@@ -29,7 +29,7 @@ const features = [
   },
   {
     title: <>Powered by React</>,
-    imageUrl: "img/car_sensors.jpg",
+    imageUrl: "img/car/car_sensors.jpg",
     description: (
       <>
         Extend or customize your website layout by reusing React. Docusaurus can be extended while
