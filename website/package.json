@@ -6,14 +6,18 @@
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
-    "deploy": "docusaurus deploy"
+    "deploy": "docusaurus deploy",
+    "now": "now --prod"
   },
   "dependencies": {
     "@docusaurus/core": "^2.0.0-alpha.50",
     "@docusaurus/preset-classic": "^2.0.0-alpha.50",
+    "@types/video.js": "^7.3.8",
     "classnames": "^2.2.6",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "video-react": "^0.14.1",
+    "video.js": "^7.7.5"
   },
   "browserslist": {
     "production": [
@@ -26,5 +30,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "now": "^18.0.0"
   }
 }
