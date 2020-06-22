@@ -74,6 +74,17 @@ function Home() {
               to={useBaseUrl("docs/main")}>
               Get Started
             </Link>
+            <span className={styles.indexCtasGitHubButtonWrapper}>
+              <iframe
+                className={styles.indexCtasGitHubButton}
+                src="https://ghbtns.com/github-btn.html?user=Photon-Lab&amp;repo=LiDAR-Robo-Car&amp;type=star&amp;count=true&amp;size=large"
+                frameBorder="0"
+                scrolling="0"
+                width="170"
+                height="30"
+                title="GitHub Stars"
+              />
+            </span>
           </div>
         </div>
       </header>

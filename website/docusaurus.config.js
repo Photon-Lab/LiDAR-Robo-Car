@@ -1,7 +1,7 @@
 module.exports = {
   title: "LiDAR Robo Car",
   tagline: "A LiDAR based autonomous robocar",
-  url: "https://your-docusaurus-test-site.com",
+  url: "https://github.com/Photon-Lab/LiDAR-Robo-Car",
   baseUrl: "/",
   favicon: "img/favicon.ico",
   organizationName: "Photon Lab - The University of Edinburgh", // Usually your GitHub org/user name.
@@ -22,8 +22,9 @@ module.exports = {
         },
         {
           href: "https://github.com/Photon-Lab/LiDAR-Robo-Car",
-          label: "GitHub",
           position: "right",
+          className: "header-github-link",
+          "aria-label": "GitHub repository",
         },
       ],
     },

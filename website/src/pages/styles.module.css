@@ -11,12 +11,6 @@
   overflow: hidden;
 }
 
-@media screen and (max-width: 966px) {
-  .heroBanner {
-    padding: 2rem;
-  }
-}
-
 .buttons {
   display: flex;
   align-items: center;
@@ -31,6 +25,30 @@
 }
 
 .featureImage {
-  height: 200px;
-  width: 200px;
+  height: 15em;
+  /*width: 200px;*/
+}
+
+.indexCtasGitHubButtonWrapper {
+  display: flex;
+}
+
+.indexCtasGitHubButton {
+  border: none;
+  margin-left: 24px;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 966px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+
+  .indexCtas {
+    justify-content: center;
+  }
+
+  .indexCtasGitHubButton {
+    display: none;
+  }
 }
