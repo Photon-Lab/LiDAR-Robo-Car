@@ -7,13 +7,17 @@ module.exports = {
   organizationName: "Photon Lab - The University of Edinburgh", // Usually your GitHub org/user name.
   projectName: "LiDAR-Robo-Car", // Usually your repo name.
   themeConfig: {
+    colorMode: {
+      defaultMode: "dark",
+      //respectPrefersColorScheme: true,
+    },
     navbar: {
       title: "LiDAR Robo Car",
       logo: {
         alt: "My Site Logo",
         src: "img/logo.svg",
       },
-      links: [
+      items: [
         {
           to: "docs/main",
           activeBasePath: "docs",
@@ -27,6 +31,23 @@ module.exports = {
           "aria-label": "GitHub repository",
         },
       ],
+    },
+    colorMode: {
+      defaultMode: "dark",
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+      switchConfig: {
+        darkIcon: "🌙",
+        darkIconStyle: {
+          // Style object passed to inline CSS
+          // For more information about styling options visit: https://reactjs.org/docs/dom-elements.html#style
+          marginLeft: "2px",
+        },
+        lightIcon: "\u2600",
+        lightIconStyle: {
+          marginLeft: "1px",
+        },
+      },
     },
     footer: {
       style: "dark",
