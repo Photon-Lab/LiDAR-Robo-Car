@@ -57,11 +57,11 @@ module.exports = {
           items: [
             {
               label: "Style Guide",
-              to: "docs/doc1",
+              to: "#",
             },
             {
               label: "Second Doc",
-              to: "docs/doc2",
+              to: "#",
             },
           ],
         },
@@ -81,10 +81,6 @@ module.exports = {
         {
           title: "Social",
           items: [
-            {
-              label: "Blog",
-              to: "blog",
-            },
             {
               label: "GitHub",
               href: "https://github.com/facebook/docusaurus",
