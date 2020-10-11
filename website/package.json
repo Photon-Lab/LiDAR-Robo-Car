@@ -7,15 +7,16 @@
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
-    "now": "now --prod"
+    "vercel": "vercel --prod"
   },
   "dependencies": {
-    "@docusaurus/core": "^2.0.0-alpha.61",
-    "@docusaurus/preset-classic": "^2.0.0-alpha.61",
-    "@types/video.js": "^7.3.10",
+    "@docusaurus/core": "^2.0.0-alpha.65",
+    "@docusaurus/preset-classic": "^2.0.0-alpha.65",
+    "@types/video.js": "^7.3.11",
     "classnames": "^2.2.6",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "vercel": "^20.1.2",
     "video-react": "^0.14.1",
     "video.js": "^7.8.4"
   },
@@ -31,7 +32,5 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "now": "^19.2.0"
-  }
+  "devDependencies": {}
 }
