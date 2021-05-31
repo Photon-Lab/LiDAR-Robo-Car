@@ -41,8 +41,8 @@ module.exports = {
           title: "Docs",
           items: [
             {
-              label: "Tutorial",
-              to: "/docs/intro",
+              label: "Docs",
+              to: "/docs/main",
             },
           ],
         },
@@ -67,10 +67,6 @@ module.exports = {
           title: "More",
           items: [
             {
-              label: "Blog",
-              to: "/blog",
-            },
-            {
               label: "GitHub",
               href: "https://github.com/facebook/docusaurus",
             },
@@ -88,11 +84,6 @@ module.exports = {
           sidebarPath: require.resolve("./sidebars.js"),
           // Please change this to your repo.
           editUrl: "https://github.com/facebook/docusaurus/edit/master/website/",
-        },
-        blog: {
-          showReadingTime: true,
-          // Please change this to your repo.
-          editUrl: "https://github.com/facebook/docusaurus/edit/master/website/blog/",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
