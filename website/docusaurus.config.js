@@ -1,8 +1,11 @@
+/** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
   title: "LiDAR Robo Car",
   tagline: "A LiDAR based autonomous robocar",
   url: "https://github.com/Photon-Lab/LiDAR-Robo-Car",
   baseUrl: "/",
+  onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
   organizationName: "Photon Lab - The University of Edinburgh", // Usually your GitHub org/user name.
   projectName: "LiDAR-Robo-Car", // Usually your repo name.
@@ -19,35 +22,17 @@ module.exports = {
       },
       items: [
         {
-          to: "docs/main",
-          activeBasePath: "docs",
-          label: "Docs",
+          type: "doc",
+          docId: "main",
           position: "left",
+          label: "Docs",
         },
         {
           href: "https://github.com/Photon-Lab/LiDAR-Robo-Car",
+          label: "GitHub",
           position: "right",
-          className: "header-github-link",
-          "aria-label": "GitHub repository",
         },
       ],
-    },
-    colorMode: {
-      defaultMode: "dark",
-      disableSwitch: false,
-      respectPrefersColorScheme: true,
-      switchConfig: {
-        darkIcon: "🌙",
-        darkIconStyle: {
-          // Style object passed to inline CSS
-          // For more information about styling options visit: https://reactjs.org/docs/dom-elements.html#style
-          marginLeft: "2px",
-        },
-        lightIcon: "\u2600",
-        lightIconStyle: {
-          marginLeft: "1px",
-        },
-      },
     },
     footer: {
       style: "dark",
@@ -56,12 +41,8 @@ module.exports = {
           title: "Docs",
           items: [
             {
-              label: "Style Guide",
-              to: "#",
-            },
-            {
-              label: "Second Doc",
-              to: "#",
+              label: "Tutorial",
+              to: "/docs/intro",
             },
           ],
         },
@@ -76,23 +57,27 @@ module.exports = {
               label: "Discord",
               href: "https://discordapp.com/invite/docusaurus",
             },
-          ],
-        },
-        {
-          title: "Social",
-          items: [
-            {
-              label: "GitHub",
-              href: "https://github.com/facebook/docusaurus",
-            },
             {
               label: "Twitter",
               href: "https://twitter.com/docusaurus",
             },
           ],
         },
+        {
+          title: "More",
+          items: [
+            {
+              label: "Blog",
+              to: "/blog",
+            },
+            {
+              label: "GitHub",
+              href: "https://github.com/facebook/docusaurus",
+            },
+          ],
+        },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} PhotonLab. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
     },
   },
   presets: [
@@ -101,7 +86,13 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
+          // Please change this to your repo.
           editUrl: "https://github.com/facebook/docusaurus/edit/master/website/",
+        },
+        blog: {
+          showReadingTime: true,
+          // Please change this to your repo.
+          editUrl: "https://github.com/facebook/docusaurus/edit/master/website/blog/",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
